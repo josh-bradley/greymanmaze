@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-    <title>Move it like Pacman</title>
+    <title>The grey man game</title>
     <meta charset="utf-8">
     <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
 </head>
@@ -16,7 +16,7 @@
     var PhaserGame = function (game) {
 
         this.map = null;
-        this.layer = null;
+        this.baseLayer = null;
         this.car = null;
 
         this.safetile = 2;
@@ -66,9 +66,12 @@
             this.map = this.add.tilemap('map');
             this.map.addTilesetImage('tiles', 'tiles');
 
-            this.layer = this.map.createLayer('GreyMan1');
-
-            this.map.setCollision(20, true, this.layer);
+            
+            this.baseLayer = this.map.createLayer('Tile Layer 1');
+            this.dirtLayer = this.map.createLayer('GreyMan1');
+            
+            this.map.setCollision(20, true, this.baseLayer);
+            this.map.setCollision(2, true, this.dirtLayer);
 
             this.car = this.add.sprite(48, 48, 'car');
             this.car.anchor.set(0.5);
@@ -77,6 +80,9 @@
             this.star.anchor.set(0.5);
 
             this.physics.arcade.enable(this.car);
+            this.physics.arcade.enable(this.star);
+            this.star.body.gravity.y = 200;
+            this.star.body.collideWorldBounds = true;
 
             this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -201,21 +207,30 @@
             return "90";
 
         },
+        
+        starCollect: function(car, star){
+            star.kill();
+        },
 
         update: function () {
           
-            this.physics.arcade.collide(this.car, this.layer);
+            this.physics.arcade.collide(this.car, this.baseLayer);
+            this.physics.arcade.collide(this.star, this.baseLayer);
+            this.physics.arcade.collide(this.star, this.dirtLayer, function(){
+                console.log("who the hell cares.");
+            });
+            this.physics.arcade.collide(this.car, this.star, this.starCollect);
 
             // Where are you? What grid element.
             this.marker.x = this.math.snapToFloor(Math.floor(this.car.x), this.gridsize) / this.gridsize;
             this.marker.y = this.math.snapToFloor(Math.floor(this.car.y), this.gridsize) / this.gridsize;
 
             //  Update our grid sensors
-            this.directions[1] = this.map.getTileLeft(this.layer.index, this.marker.x, this.marker.y);
-            this.directions[2] = this.map.getTileRight(this.layer.index, this.marker.x, this.marker.y);
-            this.directions[3] = this.map.getTileAbove(this.layer.index, this.marker.x, this.marker.y);
-            this.directions[4] = this.map.getTileBelow(this.layer.index, this.marker.x, this.marker.y);
-            this.currentTile = this.map.getTile(this.marker.x, this.marker.y, this.layer.index);
+            this.directions[1] = this.map.getTileLeft(this.baseLayer.index, this.marker.x, this.marker.y);
+            this.directions[2] = this.map.getTileRight(this.baseLayer.index, this.marker.x, this.marker.y);
+            this.directions[3] = this.map.getTileAbove(this.baseLayer.index, this.marker.x, this.marker.y);
+            this.directions[4] = this.map.getTileBelow(this.baseLayer.index, this.marker.x, this.marker.y);
+            this.currentTile = this.map.getTile(this.marker.x, this.marker.y, this.dirtLayer.index);
 
             this.checkKeys();
 
@@ -230,7 +245,7 @@
 
             //  Un-comment this to see the debug drawing
 
-            this.currentTile.index === this.safetile && this.map.putTile(1, this.currentTile.x, this.currentTile.y, this.layer);
+            this.currentTile && this.currentTile.index === 2 && this.map.removeTile(this.currentTile.x, this.currentTile.y, this.dirtLayer);
 
             for (var t = 1; t < 5; t++)
             {
