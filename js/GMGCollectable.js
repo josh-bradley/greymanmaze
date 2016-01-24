@@ -1,8 +1,7 @@
 var GMGCollectable = (function(){
-    function GMGCollectable(game, x, y, sprite){
-        console.log('did this get called')
-        Phaser.Sprite.call(this, game, x, y, sprite);
-        this.game = game;
+    function GMGCollectable(state, x, y, sprite){
+        Phaser.Sprite.call(this, state.game, x, y, sprite);
+        this.game = state.game;
 
         this.game.physics.arcade.enable(this);
         this.enableBody = true;

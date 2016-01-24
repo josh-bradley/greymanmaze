@@ -2,9 +2,9 @@ var game = new Phaser.Game(500, 500, Phaser.AUTO, 'game');
 
 var COLLECTABLE_TYPE = 'diamond';
 var BAD_GUY_TYPE = 'badGuy';
+var PLAYER_START_TYPE = 'playerStart';
 
 var PhaserGame = function (game) {
-
     this.map = null;
     this.baseLayer = null;
     this.player = null;
@@ -13,19 +13,8 @@ var PhaserGame = function (game) {
     this.dirtTile = 2644;
     this.gridsize = 16;
 
-    this.speed = 100;
-    this.threshold = 3;
-    this.turnSpeed = 150;
 
     this.marker = new Phaser.Point();
-    this.turnPoint = new Phaser.Point();
-
-    this.directions = [ null, null, null, null, null ];
-    this.opposites = [ Phaser.NONE, Phaser.RIGHT, Phaser.LEFT, Phaser.DOWN, Phaser.UP ];
-
-    this.current = Phaser.UP;
-    this.turning = Phaser.NONE;
-
 };
 
 PhaserGame.prototype = {
@@ -62,15 +51,15 @@ PhaserGame.prototype = {
         this.map.setCollision(223, true, this.blockAllLayer);
         this.map.setCollision(2644, true, this.blockNonPlayerLayer);
 
+
         //resizes the game world to match the layer dimensions
         this.baseLayer.resizeWorld();
 
         //create player
-        var result = this.findObjectsByType('playerStart', this.map, 'objectsLayer');
-        this.player = this.game.add.sprite(24, 24, 'player');
-        this.player.anchor.set(0.5);
-        this.game.physics.arcade.enable(this.player);
-
+        this.playerGroup = this.game.add.group();
+        var result = this.findObjectsByType(PLAYER_START_TYPE, this.map, 'objectsLayer');
+        this.player = this.createFromTiledObject(result[0], GMGPlayer);
+        this.playerGroup.addChild(this.player);
 
         this.diamonds = this.game.add.group();
         this.diamonds.enableBody = true;
@@ -90,21 +79,21 @@ PhaserGame.prototype = {
     createItems: function(type, constructor, group) {
         //create items
         var result = this.findObjectsByType(type, this.map, 'objectsLayer');
-        console.log('Objects of type: '+ type + 'found: ' + result.length);
         result.forEach(function(element){
-            this.createFromTiledObject(element, group, constructor);
+            var sprite = this.createFromTiledObject(element, constructor);
+            group.addChild(sprite);
         }, this);
     },
 
-    createFromTiledObject: function(element, group, constructor) {
-        var sprite = new constructor(this.game, this.correctCoordinate(element.x), this.correctCoordinate(element.y), element.properties.sprite);
-        console.log('The sprite of type: ' + sprite.x);
+    createFromTiledObject: function(element, constructor) {
+        var sprite = new constructor(this, this.correctCoordinate(element.x), this.correctCoordinate(element.y), element.properties.sprite);
         sprite.anchor.set(0.5);
-        group.addChild(sprite);
         //copy all properties to the sprite
         Object.keys(element.properties).forEach(function(key){
             sprite[key] = element.properties[key];
         });
+
+        return sprite;
     },
 
     correctCoordinate: function(x){
@@ -136,131 +125,45 @@ PhaserGame.prototype = {
 
     checkKeys: function () {
 
-        if (this.cursors.left.isDown && this.current !== Phaser.LEFT)
+        if (this.cursors.left.isDown)
         {
-            this.checkDirection(Phaser.LEFT);
+            this.player.tryToMoveTowards(Phaser.LEFT);
         }
-        else if (this.cursors.right.isDown && this.current !== Phaser.RIGHT)
+        else if (this.cursors.right.isDown)
         {
-            this.checkDirection(Phaser.RIGHT);
+            this.player.tryToMoveTowards(Phaser.RIGHT);
         }
-        else if (this.cursors.up.isDown && this.current !== Phaser.UP)
+        else if (this.cursors.up.isDown)
         {
-            this.checkDirection(Phaser.UP);
+            this.player.tryToMoveTowards(Phaser.UP);
         }
-        else if (this.cursors.down.isDown && this.current !== Phaser.DOWN)
+        else if (this.cursors.down.isDown)
         {
-            this.checkDirection(Phaser.DOWN);
+            this.player.tryToMoveTowards(Phaser.DOWN);
         }
-        else
-        {
-            //  This forces them to hold the key down to turn the corner
-            this.turning = Phaser.NONE;
-        }
-
     },
 
-    checkDirection: function (turnTo) {
-
-        if (this.turning === turnTo || this.directions[turnTo] === null)
-        {
-            //  Invalid direction if they're already set to turn that way
-            //  Or there is no tile there, or the tile isn't index a floor tile
-            return;
-        }
-
-        //  Check if they want to turn around and can
-        if (this.current === this.opposites[turnTo])
-        {
-            this.move(turnTo);
-        }
-        else
-        {
-            this.turning = turnTo;
-
-            this.turnPoint.x = (this.marker.x * this.gridsize) + (this.gridsize / 2);
-            this.turnPoint.y = (this.marker.y * this.gridsize) + (this.gridsize / 2);
-        }
-
-    },
-
-    turn: function () {
-
-        var cx = Math.floor(this.player.x);
-        var cy = Math.floor(this.player.y);
-
-        // This needs a threshold, because at high speeds you can't turn because the coordinates skip past
-        if (!this.math.fuzzyEqual(cx, this.turnPoint.x, this.threshold) || !this.math.fuzzyEqual(cy, this.turnPoint.y, this.threshold))
-        {
-            return false;
-        }
-
-        this.player.x = this.turnPoint.x;
-        this.player.y = this.turnPoint.y;
-
-        this.player.body.reset(this.turnPoint.x, this.turnPoint.y);
-
-        this.move(this.turning);
-
-        this.turning = Phaser.NONE;
-
-        return true;
-
-    },
-
-    move: function (direction) {
-
-        var speed = this.speed;
-
-        if (direction === Phaser.LEFT || direction === Phaser.UP)
-        {
-            speed = -speed;
-        }
-
-        if (direction === Phaser.LEFT || direction === Phaser.RIGHT)
-        {
-            this.player.body.velocity.x = speed;
-        }
-        else
-        {
-            this.player.body.velocity.y = speed;
-        }
-
-        this.current = direction;
-
-    },
-
-    playerHitsDiamond: function(player, diamond){
+    playerHitsDiamond: function(diamond){
         diamond.kill();
     },
 
     update: function () {
 
-        this.physics.arcade.collide(this.player, this.baseLayer);
-        this.physics.arcade.collide(this.player, this.blockAllLayer);
+        this.physics.arcade.collide(this.playerGroup, this.baseLayer);
+        this.physics.arcade.collide(this.playerGroup, this.blockAllLayer);
         this.physics.arcade.collide(this.diamonds, this.baseLayer);
         this.physics.arcade.collide(this.diamonds, this.blockAllLayer);
         this.physics.arcade.collide(this.diamonds, this.blockNonPlayerLayer);
-        this.physics.arcade.collide(this.diamonds, this.player, this.playerHitsDiamond);
+        this.physics.arcade.collide(this.diamonds, this.playerGroup, this.playerHitsDiamond);
+
+        this.checkKeys();
+        this.badGuys.children[0].move();
 
         // Where are you? What grid element.
         this.marker.x = this.math.snapToFloor(Math.floor(this.player.x), this.gridsize) / this.gridsize;
         this.marker.y = this.math.snapToFloor(Math.floor(this.player.y), this.gridsize) / this.gridsize;
 
-        //  Update our grid sensors
-        this.directions[1] = this.map.getTileLeft(this.baseLayer.index, this.marker.x, this.marker.y);
-        this.directions[2] = this.map.getTileRight(this.baseLayer.index, this.marker.x, this.marker.y);
-        this.directions[3] = this.map.getTileAbove(this.baseLayer.index, this.marker.x, this.marker.y);
-        this.directions[4] = this.map.getTileBelow(this.baseLayer.index, this.marker.x, this.marker.y);
         this.currentTile = this.map.getTile(this.marker.x, this.marker.y, this.blockNonPlayerLayer.index);
-
-        this.checkKeys();
-
-        if (this.turning !== Phaser.NONE)
-        {
-            this.turn();
-        }
-
     },
 
     render: function () {

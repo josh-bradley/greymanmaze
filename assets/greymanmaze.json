@@ -45,14 +45,15 @@
                  "name":"player",
                  "properties":
                     {
-                      "type":"playerStart"
+                      "type":"playerStart",
+                      "sprite": "player"
                     },
                  "rotation":0,
                  "type":"player",
                  "visible":true,
                  "width":16,
-                 "x":15,
-                 "y":31.5
+                 "x":16,
+                 "y":32
                 }, 
                 {
                  "gid":2230,
