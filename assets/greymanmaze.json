@@ -61,10 +61,11 @@
                  "name":"",
                  "properties":
                     {
-
+                      "type":"diamond",
+                      "sprite":"diamond"
                     },
                  "rotation":0,
-                 "type":"gold",
+                 "type":"diamond",
                  "visible":true,
                  "width":16,
                  "x":128,
@@ -77,7 +78,8 @@
                  "name":"",
                  "properties":
                     {
-
+                      "type":"diamond",
+                      "sprite":"diamond"
                     },
                  "rotation":0,
                  "type":"",
@@ -93,7 +95,8 @@
                  "name":"",
                  "properties":
                     {
-
+                      "type":"diamond",
+                      "sprite":"diamond"
                     },
                  "rotation":0,
                  "type":"",
@@ -109,7 +112,8 @@
                  "name":"",
                  "properties":
                     {
-
+                      "type":"diamond",
+                      "sprite":"diamond"
                     },
                  "rotation":0,
                  "type":"",
@@ -125,7 +129,8 @@
                  "name":"",
                  "properties":
                     {
-
+                      "type":"diamond",
+                      "sprite":"diamond"
                     },
                  "rotation":0,
                  "type":"",
@@ -141,7 +146,8 @@
                  "name":"",
                  "properties":
                     {
-
+                      "type": "badGuy",
+                      "sprite": "badGuy"
                     },
                  "rotation":0,
                  "type":"",

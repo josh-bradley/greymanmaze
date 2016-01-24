@@ -1,0 +1,2 @@
+var TopDownGame = TopDownGame || {};
+
