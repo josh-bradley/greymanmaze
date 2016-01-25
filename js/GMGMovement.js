@@ -135,6 +135,8 @@ var GMGSpriteMover = (function(){
                     this.turning = Phaser.NONE;
                 }
             }
+
+            return false;
         };
     }
 

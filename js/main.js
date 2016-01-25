@@ -1,4 +1,4 @@
-var game = new Phaser.Game(500, 500, Phaser.AUTO, 'game');
+var game = new Phaser.Game(500, 300, Phaser.AUTO, 'game');
 
 var COLLECTABLE_TYPE = 'diamond';
 var BAD_GUY_TYPE = 'badGuy';
@@ -12,7 +12,7 @@ var PhaserGame = function (game) {
     this.safetile = 2;
     this.dirtTile = 2644;
     this.gridsize = 16;
-
+    this.gameOver = false;
 
     this.marker = new Phaser.Point();
 };
@@ -125,6 +125,9 @@ PhaserGame.prototype = {
 
     checkKeys: function () {
 
+        if (this.gameOver) {
+            return false;
+        }
         if (this.cursors.left.isDown)
         {
             this.player.tryToMoveTowards(Phaser.LEFT);
@@ -147,6 +150,11 @@ PhaserGame.prototype = {
         diamond.kill();
     },
 
+    playerHitsBadGuy: function(player){
+        player.die();
+        this.gameOver = true;
+    },
+
     update: function () {
 
         this.physics.arcade.collide(this.playerGroup, this.baseLayer);
@@ -155,6 +163,7 @@ PhaserGame.prototype = {
         this.physics.arcade.collide(this.diamonds, this.blockAllLayer);
         this.physics.arcade.collide(this.diamonds, this.blockNonPlayerLayer);
         this.physics.arcade.collide(this.diamonds, this.playerGroup, this.playerHitsDiamond);
+        this.physics.arcade.collide(this.playerGroup, this.badGuys, this.playerHitsBadGuy);
 
         this.checkKeys();
         this.badGuys.children[0].move();
@@ -164,6 +173,8 @@ PhaserGame.prototype = {
         this.marker.y = this.math.snapToFloor(Math.floor(this.player.y), this.gridsize) / this.gridsize;
 
         this.currentTile = this.map.getTile(this.marker.x, this.marker.y, this.blockNonPlayerLayer.index);
+
+        this.player.update();
     },
 
     render: function () {

@@ -9,12 +9,15 @@ var GMGBadGuy = (function(){
 
         this.mover = new GMGSpriteMover(state, this);
 
-        this.moveQueue = [Phaser.LEFT, Phaser.DOWN, Phaser.RIGHT, Phaser.UP];
+        this.moveQueue = [Phaser.LEFT, Phaser.UP, Phaser.RIGHT, Phaser.DOWN];
         this.lastVisitedTile = -1;
         this.tilesVisited = {};
         this.lastDirection = Phaser.NONE;
         this.moveQueueIndex = Phaser.LEFT;
-        this.lastDirectionIdx = -1;
+        this.lastDirectionIdx = 1;
+
+        this.animations.add('run', [0, 1, 2, 1], 7, true);
+        this.animations.play('run');
     };
 
     GMGBadGuy.prototype = Object.create(Phaser.Sprite.prototype);
@@ -29,15 +32,7 @@ var GMGBadGuy = (function(){
         var newTile = currentTileIdx !== this.lastVisitedTile;
 
         if (newTile) {
-            this.moveQueueIndex = (this.lastDirectionIdx + 1) % 4;
-            //if ((this.tilesVisited[currentTileIdx] || this.tilesVisited[currentTileIdx] === 0)) {
-            //    this.moveQueueIndex = this.tilesVisited[currentTileIdx];
-            //    if (newTile) {
-            //        this.moveQueueIndex = (1 + this.moveQueueIndex) % 4;
-            //    }
-            //} else {
-            //    this.moveQueueIndex = this.lastDirectionIdx === 2 ? 1 : 0;
-            //}
+            this.moveQueueIndex = (this.lastDirectionIdx + 3) % 4;
 
             for (var i = 0; i < 4; i++) {
                 var idx = (this.moveQueueIndex + i) % 4;

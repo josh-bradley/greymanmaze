@@ -7,6 +7,10 @@ var GMGPlayer = (function(){
         this.game.physics.arcade.enable(this);
 
         this.mover = new GMGSpriteMover(state, this);
+
+
+        this.animations.add('run', [0, 1, 2, 1], 10, true);
+        this.animations.add('die', [5], 10, true);
     };
 
     GMGPlayer.prototype = Object.create(Phaser.Sprite.prototype);
@@ -14,7 +18,18 @@ var GMGPlayer = (function(){
 
     GMGPlayer.prototype.tryToMoveTowards = function(direction){
         this.mover.moveTowards(direction);
+        this.animations.play('run');
     };
+
+    GMGPlayer.prototype.update = function(){
+        if (this.body.velocity.x === 0 && this.body.velocity.y === 0) {
+            this.animations.stop();
+        }
+    };
+
+    GMGPlayer.prototype.die = function(){
+        this.animations.play('die');
+    }
 
     return GMGPlayer;
 })();
