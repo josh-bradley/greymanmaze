@@ -5,8 +5,9 @@ var GMGPlayer = (function(){
         this.game = state.game;
 
         this.game.physics.arcade.enable(this);
-
+        this.anchor.set(0.5);
         this.mover = new GMGSpriteMover(state, this);
+        this.dead = false;
 
 
         this.animations.add('run', [0, 1, 2, 1], 10, true);
@@ -28,8 +29,11 @@ var GMGPlayer = (function(){
     };
 
     GMGPlayer.prototype.die = function(){
+        this.body.velocity.x = 0;
+        this.body.velocity.y = 0;
         this.animations.play('die');
-    }
+        this.dead = true;
+    };
 
     return GMGPlayer;
 })();

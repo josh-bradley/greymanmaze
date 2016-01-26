@@ -1,4 +1,4 @@
-var game = new Phaser.Game(500, 300, Phaser.AUTO, 'game');
+var game = new Phaser.Game(500, 500, Phaser.AUTO, 'game');
 
 var COLLECTABLE_TYPE = 'diamond';
 var BAD_GUY_TYPE = 'badGuy';
@@ -10,7 +10,7 @@ var PhaserGame = function (game) {
     this.player = null;
 
     this.safetile = 2;
-    this.dirtTile = 2644;
+    this.dirtTile = 310;
     this.gridsize = 16;
     this.gameOver = false;
 
@@ -29,7 +29,8 @@ PhaserGame.prototype = {
 
         //scaling options
         this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-        this.load.tilemap('level1', 'assets/greymanmaze.json', null, Phaser.Tilemap.TILED_JSON);
+        //this.load.tilemap('level1', 'assets/greymanmaze.json', null, Phaser.Tilemap.TILED_JSON);
+        this.load.tilemap('level1', 'assets/dropdiamonds.json', null, Phaser.Tilemap.TILED_JSON);
         this.load.image('tiles', 'assets/tiles.png');
         this.load.image('diamond', 'assets/diamond.png');
         this.load.spritesheet('player', 'assets/player.png', 16, 16);
@@ -38,6 +39,7 @@ PhaserGame.prototype = {
 
     create: function () {
 
+        this.tempFrozen = [];
         this.map = this.add.tilemap('level1');
         this.map.addTilesetImage('tiles', 'tiles');
 
@@ -49,7 +51,7 @@ PhaserGame.prototype = {
         //collision on blockedLayer
         this.map.setCollision(223, true, this.baseLayer);
         this.map.setCollision(223, true, this.blockAllLayer);
-        this.map.setCollision(2644, true, this.blockNonPlayerLayer);
+        this.map.setCollision([310, 49], true, this.blockNonPlayerLayer);
 
 
         //resizes the game world to match the layer dimensions
@@ -87,7 +89,7 @@ PhaserGame.prototype = {
 
     createFromTiledObject: function(element, constructor) {
         var sprite = new constructor(this, this.correctCoordinate(element.x), this.correctCoordinate(element.y), element.properties.sprite);
-        sprite.anchor.set(0.5);
+
         //copy all properties to the sprite
         Object.keys(element.properties).forEach(function(key){
             sprite[key] = element.properties[key];
@@ -96,9 +98,9 @@ PhaserGame.prototype = {
         return sprite;
     },
 
-    correctCoordinate: function(x){
-        var d = Math.floor(x / 16);
-        var p = x % 16;
+    correctCoordinate: function(r){
+        var d = Math.floor(r / 16);
+        var p = r % 16;
         if (p > 8) {
             d += 1;
         }
@@ -146,13 +148,55 @@ PhaserGame.prototype = {
         }
     },
 
-    playerHitsDiamond: function(diamond){
-        diamond.kill();
+    playerHitsDiamond: function(diamond, player){
+        if (!player.dead) {
+            if (!diamond.body.onFloor() && diamond.body.velocity.y > 0 && player.y > diamond.y) {
+                player.die();
+                this.gameOver = true;
+            } else {
+                diamond.kill();
+            }
+        }
     },
 
-    playerHitsBadGuy: function(player){
-        player.die();
-        this.gameOver = true;
+    playerHitsBadGuy: function(player, badGuy){
+        if (!badGuy.dead) {
+            player.die();
+            this.gameOver = true;
+        }
+    },
+
+    diamondsHitsBadGuy: function(diamond, badGuy){
+        if (!badGuy.dead && diamond.body.velocity.y > 0 && badGuy.y > diamond.y) {
+            this.badGuyDeath(badGuy);
+        }
+    },
+
+    badGuyDeath: function(badGuy){
+        badGuy.die();
+        var newDiamondCount = 0;
+
+        this.createNewObject(badGuy.x - 16, badGuy.y, 'diamond', GMGCollectable, this.diamonds) && newDiamondCount++;
+        this.createNewObject(badGuy.x + 16, badGuy.y, 'diamond', GMGCollectable, this.diamonds) && newDiamondCount++;
+        this.createNewObject(badGuy.x, badGuy.y - 16, 'diamond', GMGCollectable, this.diamonds) && newDiamondCount++;
+        this.createNewObject(badGuy.x, badGuy.y + 16, 'diamond', GMGCollectable, this.diamonds) && newDiamondCount++;
+    },
+
+    createNewObject: function(x, y, sprite, constructor, group) {
+        var tileX = this.math.snapToFloor(Math.floor(x), this.gridsize) / this.gridsize;
+        var tileY = this.math.snapToFloor(Math.floor(y), this.gridsize) / this.gridsize;
+        var obj;
+        if (tileX !== 0 && tileY !== 0 && tileX !== this.map.width - 1 && tileY !== this.length - 1) {
+            var tileForDiamond = this.map.getTile(tileX, tileY, this.blockNonPlayerLayer.index);
+
+            if (tileForDiamond && tileForDiamond.index === this.dirtTile ) {
+                this.map.removeTile(tileForDiamond.x, tileForDiamond.y, this.blockNonPlayerLayer);
+            }
+            obj = new constructor(this, this.correctCoordinate(tileX * 16), this.correctCoordinate(tileY * 16), sprite);
+            group.addChild(obj);
+        }
+
+        return obj;
     },
 
     update: function () {
@@ -162,11 +206,15 @@ PhaserGame.prototype = {
         this.physics.arcade.collide(this.diamonds, this.baseLayer);
         this.physics.arcade.collide(this.diamonds, this.blockAllLayer);
         this.physics.arcade.collide(this.diamonds, this.blockNonPlayerLayer);
-        this.physics.arcade.collide(this.diamonds, this.playerGroup, this.playerHitsDiamond);
-        this.physics.arcade.collide(this.playerGroup, this.badGuys, this.playerHitsBadGuy);
+        this.physics.arcade.collide(this.diamonds, this.diamonds);
+
+
+        //this.physics.arcade.overlap(this.playerGroup, this.blockNonPlayerLayer, this.playerHitsNonPlayerLayer, null, this);
+        this.physics.arcade.overlap(this.diamonds, this.playerGroup, this.playerHitsDiamond, null, this);
+        this.physics.arcade.overlap(this.playerGroup, this.badGuys, this.playerHitsBadGuy, null, this);
+        this.physics.arcade.overlap(this.diamonds, this.badGuys, this.diamondsHitsBadGuy, null, this);
 
         this.checkKeys();
-        this.badGuys.children[0].move();
 
         // Where are you? What grid element.
         this.marker.x = this.math.snapToFloor(Math.floor(this.player.x), this.gridsize) / this.gridsize;
@@ -175,10 +223,47 @@ PhaserGame.prototype = {
         this.currentTile = this.map.getTile(this.marker.x, this.marker.y, this.blockNonPlayerLayer.index);
 
         this.player.update();
+        this.diamonds.forEachAlive(this.unfreezeObjects, this);
+
+
+        this.badGuys.forEachAlive(function(badGuy){
+            badGuy.move();
+        });
+    },
+
+    unfreezeObjects: function(obj){
+        if (obj.frozen) {
+            var playerBounds = this.player.getBounds();
+
+            var objBounds = obj.getBounds();
+            if (this.player.dead || playerBounds.left >= objBounds.right || playerBounds.right <= objBounds.left || playerBounds.top > objBounds.bottom + 8) {
+                obj.unfreeze();
+
+            }
+        }
+    },
+
+    getTileIdFromPosition: function(x, y){
+        var tileX = this.math.snapToFloor(Math.floor(x), this.gridsize) / this.gridsize;
+        var tileY = this.math.snapToFloor(Math.floor(y), this.gridsize) / this.gridsize;
+
+        return tileX + tileY * this.map.width;
     },
 
     render: function () {
-        this.currentTile && this.currentTile.index === this.dirtTile && this.map.removeTile(this.currentTile.x, this.currentTile.y, this.blockNonPlayerLayer);
+        if (this.currentTile && this.currentTile.index === this.dirtTile ) {
+            var tileAbovePlayerId = this.getTileIdFromPosition(this.player.x, this.player.y - 16);
+            this.diamonds.forEachAlive(function(diamond){
+               var diamondTileId = this.getTileIdFromPosition(diamond.x, diamond.y);
+
+                if (diamondTileId === tileAbovePlayerId) {
+                    diamond.freeze();
+                }
+            }, this);
+
+
+            this.map.removeTile(this.currentTile.x, this.currentTile.y, this.blockNonPlayerLayer);
+        }
     }
 
 };

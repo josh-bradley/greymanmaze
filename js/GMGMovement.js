@@ -21,12 +21,12 @@ var GMGSpriteMover = (function(){
         };
 
         this.isTileEmpty = function(tileGetter, marker){
-            var tile = tileGetter.call(this.state.map, this.state.baseLayer.index, marker.x, marker.y);
-            if (tile.index !== 49) {
+            var backGroundTile = tileGetter.call(this.state.map, this.state.baseLayer.index, marker.x, marker.y);
+            if (backGroundTile.index !== 49) {
                 return false;
             }
 
-            tile = tileGetter.call(this.state.map, this.state.blockAllLayer.index, marker.x, marker.y);
+            var tile = tileGetter.call(this.state.map, this.state.blockAllLayer.index, marker.x, marker.y);
 
             if (tile.index > 0) {
                 return false;
@@ -38,7 +38,12 @@ var GMGSpriteMover = (function(){
                 return false;
             }
 
-            return true;
+            return this.state.diamonds.children.every(function(diamond){
+                var tileX = this.state.math.snapToFloor(Math.floor(diamond.x), this.gridsize) / this.gridsize;
+                var tileY = this.state.math.snapToFloor(Math.floor(diamond.y), this.gridsize) / this.gridsize;
+
+                return backGroundTile.x !== tileX || backGroundTile.y !== tileY;
+            }.bind(this));
         };
 
         this.getDirections = function(){
@@ -87,7 +92,6 @@ var GMGSpriteMover = (function(){
             // This needs a threshold, because at high speeds you can't turn because the coordinates skip past
             if (!this.state.math.fuzzyEqual(cx, this.turnPoint.x, this.threshold) || !this.state.math.fuzzyEqual(cy, this.turnPoint.y, this.threshold))
             {
-                console.log("the fuck dude");
                 return false;
             }
 
